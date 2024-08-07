@@ -1,5 +1,5 @@
 
-# Nucleus
+# Nucleus 
 The Ultimate IDE for Bioinformaticians
 
 #### Things implemented: 
