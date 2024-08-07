@@ -18,7 +18,7 @@ The Ultimate IDE for Bioinformaticians
 <b><u>Thought</u></b>: We should design something like this for our pitch-deck (vision slide)
 
 
-![alt text](image.png)
+![alt text](react-world/image.png)
 
 
 
