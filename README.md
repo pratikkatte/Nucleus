@@ -5,6 +5,8 @@ The Ultimate IDE for Bioinformaticians
 "A tool tailored for bioinformaticians—just as software developers have Visual Studio Code, bioinformaticians have Nucleus."
 
 
+![Demo of the tool](assets/demo.gif)
+
 ## Getting started
 
 You can get started quickly like this:
