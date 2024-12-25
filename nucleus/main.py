@@ -3,17 +3,15 @@ import subprocess
 import shlex
 import sys
 import argparse
-from langchain_openai import ChatOpenAI
 import re
-from rich.console import Console
-from rich.markdown import Markdown
+import random
 import subprocess
 import readline
+from tools import command_provider
 
 
 
 
-console = Console()
 
 def completer(text, state):
     """
@@ -38,44 +36,9 @@ def setup_readline():
     readline.parse_and_bind("tab: complete")
     readline.set_completer(completer)
 
-def load_model(input_dict):
-    """
-    """
-    model_name = input_dict['model']
-    if model_name == 'openai':
-        llm = ChatOpenAI(
-            model="gpt-4o",
-            temperature=0,
-            max_tokens=None,
-            timeout=None,
-            max_retries=2,
-            api_key=input_dict['api']
-        )
-    return llm
 
-def model_prompt():
-    return (
-        "system",
-        "You are a helpful assistance. Help user to write biotools commands based the query. \
-            if the user types a terminal command then respond with the same command bash block back  \
-            \
-            Here's an example text. \
-            1. USER convert haplotype.sam file to haplotype.bam \
-                ASSISTANT  samtools view -S -b haplotype.sam > haplotype.bam \
-            "
-            )
 
-def format_message(message, role):
 
-    if role=='user':
-        return (
-            'human', message
-        )
-    else:
-        return (
-            'assistant', message
-        )
-    
 
 def extract_command(text):
     """
@@ -108,79 +71,111 @@ def confirm_ask():
         print("Invalid input. Please respond with 'Yes' or 'No'.")
         confirm_ask()  # Re-prompt the user
 
-def print_response(text, type=None):
-    """
-    """
-    print()
-    if type=='command':
-        print(text)
-        print()
-        return
-    
-    md = Markdown(text)
-    console.print(md, style="#fafcfb")
-    print()
 
-def get_response(model, user_input):
-    message = []
-    message.append(model_prompt())
-    message.append(format_message(user_input, role='user'))
-    response = model.invoke(message)
 
-    print_response(response.content)
-
-    command = extract_command(response.content)
-    if command:
-        # ask
-        if confirm_ask():
-            # print_response(command)
-            result = subprocess.run(command, shell=True, capture_output=True, text=True)
-
-            if result.returncode==0:
-                
-                print_response(f"command executed \n {result.stdout}", type='command')
-            else:
-                print_response(result.stderr, type='command')
-            
-
-def command_provider(input_dict):
-    """
-    Define the task to be executed when the keyword is typed.
-    """
-    main_model = load_model(input_dict)
-
-    get_response(main_model, input_dict['message'])
 
 
 def args_parser():
 
-    input_vals = {
-     'model':'openai',
-     'api':''
-    }
+    # input_vals = {
+    #  'model':'openai',
+    #  'api':''
+    # }
     parser = argparse.ArgumentParser()
-    parser.add_argument("--openai-api-key", help="OpenAI API Key")
+    parser.add_argument("--openai-api-key",  help="Specify the OpenAI API key")
+    parser.add_argument("--anthropic-api-key", help="Specify the Anthropic API key")
     args = parser.parse_args()
 
-    api_key = os.getenv("OPENAI_API_KEY")
+    model, api_key = None, None
 
-    if api_key is None and args.openai_api_key is None:
-        print("Exception: Provide openai-api-key")
-        return None
-    else:
-        input_vals['api'] = api_key
+    input_vals = {
+        'LLM': []
+    }
 
-    return input_vals
+    if args.openai_api_key:
+        model = 'openai'
+        api_key = args.openai_api_key
+
+        input_vals['LLM'] = [{
+            'model': model, 
+            "api_key": api_key
+            }]
+        
+        return input_vals
     
+    if args.anthropic_api_key:
+        model = "anthropic"
+        api_key = args.anthropic_api_key
 
+        input_vals['LLM'] = [{
+            'model': model, 
+            "api_key": api_key
+            }]
+        
+        return input_vals
+        
+
+    openai_api_key = os.getenv("OPENAI_API_KEY")
+    anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
+    gemini_api_key = os.getenv("GEMINI_API_KEY")
+
+    if openai_api_key:
+        model='openai'
+        api_key = openai_api_key
+        
+        input_vals['LLM'].append({
+            "model":model,
+            "api_key": api_key
+        })
+    
+    if anthropic_api_key:
+        model='anthropic'
+        api_key = anthropic_api_key
+
+        input_vals['LLM'].append({
+            "model":model,
+            "api_key": api_key
+        })
+    
+    if gemini_api_key:
+        model='gemini'
+        api_key = gemini_api_key
+
+        input_vals['LLM'].append({
+            "model":model,
+            "api_key": api_key
+        })
+    
+    return input_vals
+
+    # openai_api_key = os.getenv("OPENAI_API_KEY")
+    # if openai_api_key is None and args.openai_api_key is None:
+    #     input_vals = {}
+    # else:
+    #     input_vals['api'] = api_key
+    # return input_vals
+    
 def main():
     
     setup_readline()
 
-    input_vals = args_parser()
-    if not input_vals:
+    input_vals = {}
+
+    input_args = args_parser()
+    if not len(input_args['LLM']):
+        print("Provide API-KEY...")
         return
-    
+
+    if len(input_args['LLM'])==1:
+        input_vals = input_args['LLM'][0]
+
+    if len(input_args["LLM"])>1:
+        print("You have not provided the api-key but found two api-keys in your environment variable.")
+        llm = random.choice(input_args["LLM"])
+        print(1)
+        print(f"randomly chose model {llm['model']}")
+        input_vals['LLM'] = llm
+
     print("Type commands as usual. ask anything u want")
     print("Type 'exit' or 'quit' to stop the program.\n")
 

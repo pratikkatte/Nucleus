@@ -23,7 +23,7 @@ dynamic = ["dependencies", "optional-dependencies", "version"]
 Homepage = "https://github.com/pratikkatte/Nucleus.git"
 
 [project.scripts]
-nucleus = "nucleus.nucleus:main"
+nucleus = "nucleus.main:main"
 
 [tool.setuptools.dynamic]
 dependencies = {file = "requirements.txt"}
