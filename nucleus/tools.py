@@ -64,6 +64,7 @@ def get_response(model, user_input):
             else:
                 print_response(result.stderr, type='command')
             
+
 def confirm_ask():
     """
     Prompt the user to decide whether to run or not.
