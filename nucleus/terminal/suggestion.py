@@ -66,6 +66,5 @@ def main():
         except (KeyboardInterrupt, EOFError):
             break
 
-
 if __name__ == "__main__":
     main()

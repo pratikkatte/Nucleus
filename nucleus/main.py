@@ -218,6 +218,9 @@ def main():
                         print(f"cd: {new_dir}: No such file or directory")
                     except Exception as e:
                         print(f"cd: {e}")
+                else:
+                    subprocess.run(shlex.split(user_input), check=False)
+
             
             elif user_input.startswith("/show"):
                 file_input = user_input.split("/show", 1)[-1].strip()
