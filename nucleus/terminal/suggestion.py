@@ -2,14 +2,14 @@ from prompt_toolkit import PromptSession
 from prompt_toolkit.completion import Completer, Completion
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.keys import Keys
+from prompt_toolkit.shortcuts import CompleteStyle, PromptSession
+
 import os
 
 
 class FilePathCompleter(Completer):
     def get_completions(self, document, complete_event):
         text = document.text_before_cursor
-
-        # word = document.get_word_before_cursor()
 
         
         word = text.split(" ")[-1]
@@ -22,7 +22,10 @@ class FilePathCompleter(Completer):
         
         try:
             # List entries in the directory
-            entries = os.listdir(dirname)
+            if os.path.isdir(dirname):
+                entries = os.listdir(dirname)
+            else:
+                entries = []
         except FileNotFoundError:
             return
 
@@ -31,7 +34,7 @@ class FilePathCompleter(Completer):
             full_path = os.path.join(dirname, entry)
             if partial_name.lower() in entry.lower():  # Case-insensitive substring match
                 # Add a trailing '/' to directories
-                display = entry + "/" if os.path.isdir(full_path) else entry                
+                display = entry if os.path.isdir(full_path) else entry                
                 yield Completion(
                     display,
                     start_position=-len(partial_name),
@@ -55,7 +58,7 @@ def _(event):
 def main():
 
 
-    session = PromptSession(completer=FilePathCompleter(), key_bindings=kb)
+    session = PromptSession(completer=FilePathCompleter(), key_bindings=kb, complete_style=CompleteStyle.MULTI_COLUMN)
     while True:
         try:
             user_input = session.prompt("Enter path: ")
