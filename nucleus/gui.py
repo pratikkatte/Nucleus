@@ -7,62 +7,27 @@ import logging
 import time
 from threading import Thread
 from pkg_resources import resource_filename
+from multiprocessing import Queue
 
 # Disable flask logging
-# log = logging.getLogger('werkzeug')
+log = logging.getLogger('werkzeug')
 
-# log.setLevel(logging.ERROR)
-# log.disabled = True
+log.setLevel(logging.ERROR)
+log.disabled = True
 
-# cli.show_server_banner = lambda *_: Nonce
+cli.show_server_banner = lambda *_: None
 
-frontend_path = resource_filename(__name__, 'gui/dist/')
+frontend_path = resource_filename(__name__, 'visualization/dist')
 
-data = {"assembly": {
-  "name": 'NC_045512',
-  "aliases": ['hg38'],
-  "sequence": {
-    "type": 'ReferenceSequenceTrack',
-    "trackId": 'GRCh38-ReferenceSequenceTrack',
-    "adapter": {
-      "type": 'IndexedFastaAdapter',
-      "fastaLocation": {
-        "uri": 'http://127.0.0.1:5000/uploads/data/reference/NC_045512v2.fa',
-      },
-      "faiLocation": {
-        "uri": 'http://127.0.0.1:5000/uploads/data/reference/NC_045512v2.fa.fai',
-      },
-    },
-  }
-},
-"track": [{
-        "type": 'AlignmentsTrack',
-        "trackId": "genes", 
-        "name": 'spike-in_bams_file_0.bam',
-        "assemblyNames": ['NC_045512'],
-        "category": ['Genes'],
-        "adapter": {
-          "type": 'BamAdapter',
-          "bamLocation": {
-            "uri": 'http://127.0.0.1:5000/uploads/data/bamfiles/customised_my_vcf_NODE-1.bam',
-          },
-          "index": {
-            "location": {
-              "uri": 'http://127.0.0.1:5000/uploads/data/bamfiles/customised_my_vcf_NODE-1.bam.bai',
-            },
-          },
-        }
-    }]
-}
-app = Flask(__name__,  static_folder=frontend_path)
+app = Flask(__name__, static_folder='visualization/dist')
+
 
 UPLOAD_FOLDER = os.path.abspath(os.path.dirname(__file__))
 
-print("UPLOAD_FOLDER", UPLOAD_FOLDER)
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
-CORS(app)
+CORS(app)  # Allow CORS for all origins
 
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins="*",  async_mode="threading")
 
 @app.route('/uploads/<path:name>')
 def download_file(name):
@@ -82,43 +47,32 @@ def serve(path):
         return send_from_directory(app.static_folder, path)
     return send_from_directory(app.static_folder, 'index.html')
 
-# Test GET endpoint
-@app.route('/', methods=['GET'])
-def status():
-    print("Status endpoint accessed")
-    return "Success 200!"
-
 
 @socketio.on("data")
 def send_data():
-    global data
+    """
+    """
     while True:
         time.sleep(5)  # Wait for 5 seconds before sending an update
-        # data = {'message': 'Hello from Flask!'}
-        socketio.emit('data', {'message': data})
+        if not data_queue.empty():
+            data = data_queue.get()
+            socketio.emit('data', {'config': data})
 
-# Start the background thread that sends data updates
-def start_background_task():
-    thread = Thread(target=send_data)
-    thread.daemon = True
-    thread.start()
+def run_flask_app(queue):
+    """
+    """
+    global data_queue
+    data_queue = queue
 
-
-def run_flask_app(file_input):
-
-    # from werkzeug.serving import make_server
-    # http_server = make_server('127.0.0.1', 5000, app)
-    print(file_input)
-    if not file_input:
-        print("Provide the file that you want to show!")
-        return
-    else:
-        # http_server.serve_forever()
-        socketio.run(app, host='127.0.0.1', port=5000, debug=True)
-
+    Thread(target=send_data, daemon=True).start()
+      
+    socketio.run(app, port=5000, debug=False, allow_unsafe_werkzeug=True, log_output=False)
 
 if __name__ == '__main__':
-    # app.run(debug=True)
-    start_background_task()
-    socketio.run(app, host='127.0.0.1', port=5000, debug=True)
+    # global data_queue
+    data_queue = Queue()
+    data_queue.put({"message": "hello"})
+    
+    Thread(target=send_data, daemon=True).start()
+    socketio.run(app, port=5000, debug=True)
 
