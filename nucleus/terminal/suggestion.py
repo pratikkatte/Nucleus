@@ -3,20 +3,23 @@ from prompt_toolkit.completion import Completer, Completion
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.keys import Keys
 from prompt_toolkit.shortcuts import CompleteStyle, PromptSession
+from prompt_toolkit.styles import Style
 
 import os
+
+PLACEHOLDER = [('gray', 'ask me anything')]
+
+FILE_DISPLAY_PLACEHOLDER = [('gray', '')]
 
 
 class FilePathCompleter(Completer):
     def get_completions(self, document, complete_event):
         text = document.text_before_cursor
 
-        
         word = text.split(" ")[-1]
 
         dirname, partial_name = os.path.split(word)
 
-        
         if not dirname:  # Default to the current directory if none is specified
             dirname = "."
         
@@ -55,10 +58,28 @@ def _(event):
     return True
 
 
+custom_style = Style.from_dict({
+    'prompt': 'bold green',  # Style for the prompt text
+    '': 'white',           # Default text style
+})
+
+
+session = PromptSession(completer=FilePathCompleter(), 
+                        key_bindings=kb, 
+                        complete_style=CompleteStyle.MULTI_COLUMN,
+                        style=custom_style
+                        )
+
+
+
 def main():
 
 
-    session = PromptSession(completer=FilePathCompleter(), key_bindings=kb, complete_style=CompleteStyle.MULTI_COLUMN)
+    session = PromptSession(completer=FilePathCompleter(), 
+                            key_bindings=kb, 
+                            complete_style=CompleteStyle.MULTI_COLUMN,
+                            style=custom_style
+                            )
     while True:
         try:
             user_input = session.prompt("Enter path: ")
@@ -66,5 +87,7 @@ def main():
         except (KeyboardInterrupt, EOFError):
             break
 
+
 if __name__ == "__main__":
     main()
+

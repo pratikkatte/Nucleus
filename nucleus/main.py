@@ -1,90 +1,33 @@
-from multiprocessing import Process, Event, Queue
 import os
 import subprocess
 import shlex
-import sys
 import argparse
 import re
 import random
 import subprocess
-# import readline
-from tools import command_provider
-from gui import run_flask_app
-import threading
+
 from data_viz.planner import plan
-from terminal.suggestion import FilePathCompleter, kb
+from terminal.suggestion import session, PLACEHOLDER
+from terminal.planner import QueryManager
+from nucleus.tools import MessagePrinter
+from nucleus.logger import log
 
-from gui import run_flask_app
-from prompt_toolkit import PromptSession
+# data viz server
+from data_viz.server import FastAPIServer
+from data_viz.app import app
 
-temp_data = data = {"assembly": {
-  "name": 'NC_045512',
-  "aliases": ['hg38'],
-  "sequence": {
-    "type": 'ReferenceSequenceTrack',
-    "trackId": 'GRCh38-ReferenceSequenceTrack',
-    "adapter": {
-      "type": 'IndexedFastaAdapter',
-      "fastaLocation": {
-        "uri": 'http://127.0.0.1:5000/uploads/data/reference/NC_045512v2.fa',
-      },
-      "faiLocation": {
-        "uri": 'http://127.0.0.1:5000/uploads/data/reference/NC_045512v2.fa.fai',
-      },
-    },
-  }
-},
-"track": [{
-        "type": 'AlignmentsTrack',
-        "trackId": "genes", 
-        "name": 'spike-in_bams_file_0.bam',
-        "assemblyNames": ['NC_045512'],
-        "category": ['Genes'],
-        "adapter": {
-          "type": 'BamAdapter',
-          "bamLocation": {
-            "uri": 'http://127.0.0.1:5000/uploads/data/bamfiles/customised_my_vcf_NODE-1.bam',
-          },
-          "index": {
-            "location": {
-              "uri": 'http://127.0.0.1:5000/uploads/data/bamfiles/customised_my_vcf_NODE-1.bam.bai',
-            },
-          },
-        }
-    }]
+
+data_viz_server = FastAPIServer(app)
+app.state.server_instance = data_viz_server
+
+data_viz_server.start()
+
+file_requirements = {
+    '.bam': "",
+    '.bai': "",
+    '.fa': "",
+    '.fai': ""
 }
-
-def extract_command(text):
-    """
-    Extracts a command from a text block surrounded by triple backticks and in bash syntax.
-    
-    Args:
-        text (str): The input text containing the command.
-        
-    Returns:
-        str: The extracted command, or None if no command is found.
-    """
-    match = re.search(r"```bash\n(.+?)```", text, re.DOTALL)
-    if match:
-        return match.group(1).strip()
-    return None
-
-
-def confirm_ask():
-    """
-    Prompt the user to decide whether to run or not.
-    """
-    ask_text = "\n[bold cyan]Do you want to run?[/bold cyan] [green](Yes or No):[/green] "
-    # console.print(ask_text, end=" ")
-    response = console.input(ask_text).strip().lower()
-    if response in ['yes', 'y']:
-        return True
-    elif response in ['no', 'n']:
-        return False
-    else:
-        print("Invalid input. Please respond with 'Yes' or 'No'.")
-        confirm_ask()  # Re-prompt the user
-
 
 def args_parser():
     parser = argparse.ArgumentParser()
@@ -107,11 +50,15 @@ def args_parser():
             "api_key": api_key
             }]
         
+        os.environ["OPENAI_API_KEY"] = api_key
+        
         return input_vals
     
     if args.anthropic_api_key:
         model = "anthropic"
         api_key = args.anthropic_api_key
+
+        os.environ["ANTHROPIC_API_KEY"] = api_key
 
         input_vals['LLM'] = [{
             'model': model, 
@@ -123,6 +70,8 @@ def args_parser():
     openai_api_key = os.getenv("OPENAI_API_KEY")
     anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
     gemini_api_key = os.getenv("GEMINI_API_KEY")
+    
+    
 
     if openai_api_key:
         model='openai'
@@ -154,53 +103,46 @@ def args_parser():
     return input_vals
     
 def main():
-    
-    session = PromptSession(completer=FilePathCompleter(), key_bindings=kb)
-
-    ## run flask local server. 
-    data_queue = Queue()
-    flask_process = Process(target=run_flask_app, args=(data_queue,))
-
-    flask_process.start()
-
-    # setup_readline()
+    """
+    """
 
     input_vals = {}
 
-
     input_args = args_parser()
+    
     if not len(input_args['LLM']):
-        print("Provide API-KEY...")
+        log.error("Error: No API key provided. Please provide an API key to proceed.")
         return
 
     if len(input_args['LLM'])==1:
-        input_vals = input_args['LLM'][0]
+        input_vals['LLM'] = input_args['LLM'][0]
 
     if len(input_args["LLM"])>1:
-        print("You have not provided the api-key but found two api-keys in your environment variable.")
+        log.warning("Multiple API keys found in your environment variables, but none explicitly provided.")
         llm = random.choice(input_args["LLM"])
-        print(1)
-        print(f"randomly chose model {llm['model']}")
+        log.info(f"Randomly selected API key for the model '{llm['model']}'.")
         input_vals['LLM'] = llm
 
-    print("Type commands as usual. ask anything u want")
-    print("Type 'exit' or 'quit' to stop the program.\n")
+    message_printer = MessagePrinter()
 
+    message_printer.system_message("\nExecute terminal commands with prefix '!'. Ask questions as usual. Ask questions as usual.")
+    message_printer.system_message("Type 'exit' or 'quit' to terminate the program. \n")
+
+
+    query_responder = QueryManager(input_vals, message_printer)
     while True:
         try:
             # Prompt for user input
-            user_input = session.prompt("> ")
+
+            user_input = session.prompt("\n> ", placeholder=PLACEHOLDER)
 
             # Check if the user wants to exit
             if user_input.lower() == "":
                 continue
 
             if user_input.lower() in ["exit", "quit"]:
-                print("Exiting shell. Goodbye!")
-                                
-                flask_process.terminate()
-                flask_process.join()
-
+                data_viz_server.stop()
+                message_printer.system_message("Exiting shell. Goodbye!")
                 break
 
             if user_input.lower()[0] in "!":
@@ -221,41 +163,31 @@ def main():
                 else:
                     subprocess.run(shlex.split(user_input), check=False)
 
-            
             elif user_input.startswith("/show"):
                 file_input = user_input.split("/show", 1)[-1].strip()
-                config = plan(file_input, session)
-                data_queue.put(config)
+                config = plan(file_input, session, message_printer)
+                if config:
+                    # data_queue.put(config)
+                    data_viz_server.send_data(config)
 
-                print(f"You can view the file at http://127.0.0.0:5000")
+                    message_printer.system_message("You can view the file at http://localhost:8000")
+                else:
+                    message_printer.system_message("\n Provided file doesn't exist.")
+                    continue
 
             elif user_input == "/close":
-                if flask_process and flask_process.is_alive():
-                    print("Stopping Flask process...")
-                    flask_process.terminate()
-                    flask_process.join()
-                # Run other normal terminal commands
-                else:
-                    subprocess.run(shlex.split(user_input), check=False)
-            
-            elif user_input.lower()[0] in "/":
-                pass
+                data_viz_server.stop()
 
             else:
-                input_vals['message'] = user_input
-                command_provider(input_vals)
-                
+                query_responder.execute_query(user_input)
 
         except KeyboardInterrupt:
-            print("\n Exiting Nucleus. Goodbye!")
+            data_viz_server.stop()
+            message_printer.system_message("\n Exiting shell. Goodbye!")
             break
         except Exception as e:
-            print(f"Error in main : {e}")
-    
-    flask_process.terminate()
-    flask_process.join()
 
-
+            log.error(f"Error : {e}")
 
 if __name__ == "__main__":
     main()

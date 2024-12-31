@@ -1,11 +1,12 @@
 
 # Nucleus
-The Ultimate IDE for Bioinformaticians
 
 "A tool tailored for bioinformaticians—just as software developers have Visual Studio Code, bioinformaticians have Nucleus."
 
 
-![Demo of the tool](assets/demo.gif)
+![Demo of the tool](./assets/demo.gif)
+
+
 
 ## Getting started
 
@@ -34,3 +35,6 @@ python nucleus.py
 - [x] Able to execute normal terminal commands as well as commands sent as query.
 - [ ] local severs spinoff with chat interface.
 - [ ] Visualization of bio-files. spin off jbrowse component.
+
+
+Nucleus is a tool tailored for bioinformaticians. It is available on 

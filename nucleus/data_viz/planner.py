@@ -1,14 +1,16 @@
 import os
 from pydantic import BaseModel, Field
 from typing import List
-import data_viz.dependencies as dependencies
+from .dependencies import BAM_VISUALIZATION
 
-def plan(input_filepath, session):
+def plan(input_filepath, session, message_printer):
     filename, file_ext = os.path.splitext(input_filepath)
     if file_ext == '.bam':
-        file_requirements = bamFileReq(input_filepath, file_ext, session)
-        config = generate_config(file_ext, file_requirements)
-        return config
+        if os.path.exists(input_filepath):
+            file_requirements = bamFileReq(input_filepath, file_ext, session, message_printer)
+            config = generate_config(file_ext, file_requirements)
+            return config
+        return None
 
 def generate_config(ext, file_requirements):
     """
@@ -23,10 +25,10 @@ def generate_config(ext, file_requirements):
                     "adapter": {
                         "type": 'IndexedFastaAdapter',
                         "fastaLocation": {
-                            "uri": f'http://127.0.0.1:5000/uploads/{file_requirements['.fa']}',
+                            "uri": f'http://127.0.0.1:8000/uploads/{file_requirements[".fa"]}',
                             },
                         "faiLocation": {
-                            "uri": f'http://127.0.0.1:5000/uploads/{file_requirements['.fai']}',
+                            "uri": f'http://127.0.0.1:8000/uploads/{file_requirements[".fai"]}',
                             },
                         },
                     },
@@ -40,11 +42,11 @@ def generate_config(ext, file_requirements):
         "adapter": {
           "type": 'BamAdapter',
           "bamLocation": {
-            "uri": f'http://127.0.0.1:5000/uploads/{file_requirements['.bam']}',
+            "uri": f'http://127.0.0.1:5000/uploads/{file_requirements[".bam"]}',
           },
           "index": {
             "location": {
-              "uri": f'http://127.0.0.1:5000/uploads/{file_requirements['.bai']}',
+              "uri": f'http://127.0.0.1:5000/uploads/{file_requirements[".bai"]}',
             },
           },
         }
@@ -55,19 +57,29 @@ def generate_config(ext, file_requirements):
         "track": track
         }
 
-def bamFileReq(bamfile, ext, session):
+
+
+def bamFileReq(bamfile, ext, session, message_printer):
     """
     """
+    requirements = BAM_VISUALIZATION
+
+    prefix_text = f"In order display {bamfile}. \nFollowing input file types are required: \n "
+    prefix_text += "\n".join([f"{i}. {key} file" for i, (key, value) in enumerate(requirements.items()) if key != ext])
+
+    message_printer.assistant_message(prefix_text)
+
+
+
     all_file_quries = []
 
-    requirements = dependencies.BAM_VISUALIZATION
+    
     for i, (key, value) in enumerate(requirements.items()):
         if key == ext:
             input_file_path = bamfile
         else:
             input_file_path = ""
         
-        print(i, key, value)
         file_query = FileQuery(
             id=i,
             file_path=input_file_path,  # Replace with an actual file path
@@ -77,13 +89,11 @@ def bamFileReq(bamfile, ext, session):
 
     visualization_planner = VisualizationPlanner(file_queries=all_file_quries)
     
-    all_files_required = visualization_planner.execute(session)
+    all_files_required = visualization_planner.execute(session, message_printer)
     return all_files_required
 
 class FileQuery(BaseModel):
     """
-    Class representing a single question in a question answer subquery.
-    Can be either a single question or a multi question merge.
     """
 
     id: int = Field(..., description="Unique id of the query")
@@ -97,12 +107,11 @@ class FileQuery(BaseModel):
     def check_file(self, input_file):
         if input_file:
             filename, file_ext = os.path.splitext(input_file)
-            print(filename, file_ext)
             if os.path.exists(input_file) and file_ext == self.file_type:
                 return True
         return False
 
-    def execute(self, required_files, session):
+    def execute(self, required_files, session, message_printer):
         """
         """ 
         if self.check_file(self.file_path):
@@ -110,11 +119,13 @@ class FileQuery(BaseModel):
             return required_files
         else:
             while True:
-                user_input = session.prompt(f"Please provide {self.file_type} file type in order to display:")
+                user_input = session.prompt(f"\n Please provide the {self.file_type} file : ")
                 
                 if self.check_file(user_input):
                     required_files[self.file_type] = user_input
                     return required_files
+                else:
+                    message_printer.assistant_message("Please provide the correct file.")
 
 class VisualizationPlanner(BaseModel):
     """
@@ -124,18 +135,18 @@ class VisualizationPlanner(BaseModel):
     )
     required_files: dict = Field(default={}, description="required files")
 
-    def dependencies(self, idz: list[int]) -> list[FileQuery]:
+    def dependencies(self, id: List[int]) -> List[FileQuery]:
         """
         not needed for now. but might be neded in future. 
         """
         pass
 
-    def execute(self, session):
+    def execute(self, session, message_printer):
         """
         """
         for query in self.file_queries:
             res = query.execute(
-                self.required_files, session
+                self.required_files, session, message_printer
             )
             self.required_files = res
         return self.required_files
