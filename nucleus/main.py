@@ -1,3 +1,4 @@
+import cProfile
 import os
 import subprocess
 import shlex
@@ -6,15 +7,15 @@ import re
 import random
 import subprocess
 
-from data_viz.planner import plan
-from terminal.suggestion import session, PLACEHOLDER
-from terminal.planner import QueryManager
+from nucleus.data_viz.planner import plan
+from nucleus.terminal.suggestion import session, PLACEHOLDER
+from nucleus.terminal.planner import QueryManager
 from nucleus.tools import MessagePrinter
 from nucleus.logger import log
 
 # data viz server
-from data_viz.server import FastAPIServer
-from data_viz.app import app
+from nucleus.data_viz.server import FastAPIServer
+from nucleus.data_viz.app import app
 
 
 data_viz_server = FastAPIServer(app)
