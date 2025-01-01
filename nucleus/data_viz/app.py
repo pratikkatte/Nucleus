@@ -21,7 +21,6 @@ app.add_middleware(
 )
 
 react_build_dir = Path(__file__).parent / "../visualization/dist"
-print(react_build_dir)
 
 uploads_dir = os.curdir
 
