@@ -1,15 +1,70 @@
-from nucleus.models import load_model
-from nucleus.prompts import model_prompt
 from rich.markdown import Markdown
 from rich.console import Console
+from rich.text import Text
+from langchain_openai import ChatOpenAI
 import re
 import subprocess
 
+from nucleus.logger import log
+
 console = Console()
 
+class MessagePrinter:
+    def __init__(self):
+        self.console = Console()
+        self.style="#fafcfb"
+
+    def system_message(self, message):
+        """
+        Prints a system message with specific styling.
+        """
+        system_text = Text(message, style="yellow")
+        self.console.print(system_text)
+
+    def user_message(self, message):
+        """
+        Prints a user message with Markdown rendering.
+        """
+        user_text = Text(f"{message}")
+        self.console.print(user_text, style=self.style)
+
+    def assistant_message(self, message, type=None):
+        """
+        Prints an assistant message with optional Markdown rendering.
+        """
+        if type=='command':
+            print("\n"+ message)
+        else:
+            # pprint(message)
+            assistant_text = Markdown(f"<br>{message}")
+            self.console.print(assistant_text)
+
+def command_provider(message , model_name):
+    """
+    """
+
+    llm = None
+
+    if model_name == 'openai':
+        llm = ChatOpenAI(
+                model="gpt-4o",
+                temperature=0,
+                max_tokens=None,
+                timeout=None,
+                max_retries=2
+            )
+        
+    if llm is not None:
+        message = f"Be precise in your response. Here is the question: {message}"
+        response = llm.invoke(message)
+    else:
+        return "No LLM chosen"
+    
+    return response.content
 
 def format_message(message, role):
-
+    """
+    """
     if role=='user':
         return (
             'human', message
@@ -18,52 +73,33 @@ def format_message(message, role):
         return (
             'assistant', message
         )
-    
-
-def command_provider(input_dict):
-    """
-    Define the task to be executed when the keyword is typed.
-    """
-    main_model = load_model(input_dict)
-
-    get_response(main_model, input_dict['message'])
 
 
-def print_response(text, type=None):
-    """
-    """
-    print()
-    if type=='command':
-        print(text)
-        print()
-        return
-    
-    md = Markdown(text)
-    console.print(md, style="#fafcfb")
-    print()
 
+def get_response(response, message_printer):
 
-def get_response(model, user_input):
-    message = []
-    message.append(model_prompt())
-    message.append(format_message(user_input, role='user'))
-    response = model.invoke(message)
+    try:
+        # print_response(response)
 
-    print_response(response.content)
+        message_printer.assistant_message(response)
+   
+        command = extract_command(response)
+        if command:
+            # ask
+            if confirm_ask():
+                # print_response(command)
+                result = subprocess.run(command, shell=True, capture_output=True, text=True)
 
-    command = extract_command(response.content)
-    if command:
-        # ask
-        if confirm_ask():
-            # print_response(command)
-            result = subprocess.run(command, shell=True, capture_output=True, text=True)
+                if result.returncode==0:
+                    
+                    # print_response(f"command executed \n {result.stdout}", type='command')
+                    message_printer.assistant_message(f"command executed \n {result.stdout}", type='command')
+                else:
+                    message_printer.assistant_message(result.stderr, type='command')
+                    # print_response(result.stderr, type='command')
+    except Exception as e:
+        log.error("Error in get_response", e)
 
-            if result.returncode==0:
-                
-                print_response(f"command executed \n {result.stdout}", type='command')
-            else:
-                print_response(result.stderr, type='command')
-            
 def confirm_ask():
     """
     Prompt the user to decide whether to run or not.
@@ -93,3 +129,22 @@ def extract_command(text):
     if match:
         return match.group(1).strip()
     return None
+
+# Example usage
+if __name__ == "__main__":
+    printer = MessagePrinter()
+
+    # Print system messages
+    printer.print_system_message("Type commands as usual. Ask anything you want.")
+    printer.print_system_message("Type 'exit' or 'quit' to stop the program.\n")
+
+    # Print user message
+    printer.print_user_message("Hello, how do I use this program?")
+
+    # Print assistant message
+    printer.print_assistant_message("Sure! Let me explain how it works.")
+
+    # Print messages with Markdown rendering
+    printer.print_user_message("### This is a Markdown heading")
+    printer.print_assistant_message("**This text is bold in Markdown**")
+
