@@ -126,7 +126,7 @@ def main():
 
     message_printer = MessagePrinter()
 
-    message_printer.system_message("\nExecute terminal commands with prefix '!'. Ask questions as usual. Ask questions as usual.")
+    message_printer.system_message("\nExecute terminal commands with prefix '!'. Ask questions as usual.")
     message_printer.system_message("Type 'exit' or 'quit' to terminate the program. \n")
 
 
