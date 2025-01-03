@@ -1,40 +1,46 @@
+---
+title: Home
+layout: home
+nav_order: 1
+---
 
-# Nucleus
+## A Tool for Bioinformaticians
 
-"A tool tailored for bioinformaticians—just as software developers have Visual Studio Code, bioinformaticians have Nucleus."
+Just as software developers have Visual Studio Code, bioinformaticians now have Nucleus.
 
+Nucleus is designed to simplify bioinformatics workflows by integrating powerful language models with essential bioinformatics tools. 
 
-![Demo of the tool](./assets/demo.gif)
+![Descriptive Alt Text](assets/demo.gif)
 
-
-
-## Getting started
-
-You can get started quickly like this:
-
+## Installation
 ```
-pip install -r requirements.txt
-
-cd nucleus
-```
-
-To set the `OPENAI_API_KEY` environment variable.
-```
-export OPENAI_API_KEY="sk-...."
+pip install nucleus-bio
 ```
 
-To run
-```python
-python nucleus.py
+## Getting Started
+
 ```
+# Navigate to your desired project directory. 
+cd /to/your/project
+
+# Nucleus currently supports OpenAI and Anthropic models.
+
+# Use OpenAI 4o on your files
+nucleus --model openai --openai-api-key your-key-goes-here
+
+# Use Claude 3.5 Sonnet on your files
+aider --model sonnet --anthropic-api-key your-key-goes-here
+```
+
+Refer to usage [documentation](https://pratikkatte.github.io/nucleus-bio/docs/usage) for more details.
 
 ## Features
-- [x] Based on query provide commands related to bioinformatic tools.
-- [x] Execute the command.
-- [x] suggest filenames on tab-press while query input.
-- [x] Able to execute normal terminal commands as well as commands sent as query.
-- [ ] local severs spinoff with chat interface.
-- [ ] Visualization of bio-files. spin off jbrowse component.
+- Ask for queries related to bioinformatic tools and commands. 
 
+## Upcoming Features
+- Integration of BioWASM tools to eliminate the need for local installation of bioinformatics software.
+- Visualizae bioinformatics file formats.
+- Search and download bioinformatics datasets directly.
 
-Nucleus is a tool tailored for bioinformaticians. It is available on 
+<!-- ## Kind words from users -->
+
