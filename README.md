@@ -1,4 +1,4 @@
-## Nucleus: A Tool for Bioinformaticians
+## Nucleus: A Tool for Bioinformaticians. 
 
 Just as software developers have Visual Studio Code, bioinformaticians now have Nucleus.
 
