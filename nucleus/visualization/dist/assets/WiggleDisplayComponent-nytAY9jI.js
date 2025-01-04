@@ -1,0 +1,1 @@
+import{o as r,R as e,Q as o}from"./rpcWorker-CVTx5FIM.js";import{Y as l}from"./YScaleBars-tmASsR5r.js";import"./util-BJs5r2KQ.js";const s=r(function(t){const{model:a}=t;return e.createElement("div",null,e.createElement(o,{...t}),e.createElement(l,{model:a}))});export{s as default};

@@ -1,0 +1,1 @@
+import{aW as l,aX as i,aY as o,g as n}from"./rpcWorker-CVTx5FIM.js";var e={},r;function s(){if(r)return e;r=1;var t=l();Object.defineProperty(e,"__esModule",{value:!0}),e.default=void 0;var a=t(i()),u=o();return e.default=(0,a.default)((0,u.jsx)("path",{d:"M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6zM19 4h-3.5l-1-1h-5l-1 1H5v2h14z"}),"Delete"),e}var v=s(),D=n(v);export{D};

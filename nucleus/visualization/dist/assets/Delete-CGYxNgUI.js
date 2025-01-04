@@ -1,0 +1,1 @@
+import{l,n as o,p as i,f as n}from"./index-ohkpUfgU.js";var e={},r;function s(){if(r)return e;r=1;var t=l();Object.defineProperty(e,"__esModule",{value:!0}),e.default=void 0;var a=t(o()),u=i();return e.default=(0,a.default)((0,u.jsx)("path",{d:"M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6zM19 4h-3.5l-1-1h-5l-1 1H5v2h14z"}),"Delete"),e}var f=s();const D=n(f);export{D};
