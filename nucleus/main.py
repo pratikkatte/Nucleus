@@ -18,10 +18,10 @@ from nucleus.data_viz.server import FastAPIServer
 from nucleus.data_viz.app import app
 
 
-data_viz_server = FastAPIServer(app)
-app.state.server_instance = data_viz_server
+# data_viz_server = FastAPIServer(app)
+# app.state.server_instance = data_viz_server
 
-data_viz_server.start()
+# data_viz_server.start()
 
 file_requirements = {
     '.bam': "",
@@ -146,7 +146,7 @@ def main():
                 continue
 
             if user_input.lower() in ["exit", "quit"]:
-                data_viz_server.stop()
+                # data_viz_server.stop()
                 message_printer.system_message("Exiting shell. Goodbye!")
                 break
 
@@ -168,34 +168,33 @@ def main():
                 else:
                     subprocess.run(shlex.split(user_input), check=False)
 
-            elif user_input.startswith("/show"):
-                file_input = user_input.split("/show", 1)[-1].strip()
-                config = plan(file_input, session, message_printer)
-                if config:
-                    # data_queue.put(config)
-                    data_viz_server.send_data(config)
+            # elif user_input.startswith("/show"):
+            #     file_input = user_input.split("/show", 1)[-1].strip()
+            #     config = plan(file_input, session, message_printer)
+            #     if config:
+            #         # data_queue.put(config)
+            #         data_viz_server.send_data(config)
 
-                    message_printer.system_message("You can view the file at http://localhost:8000")
-                else:
-                    message_printer.system_message("\n Provided file doesn't exist.")
-                    continue
-
-            elif user_input == "/close":
-                data_viz_server.stop()
+            #         message_printer.system_message("You can view the file at http://localhost:8000")
+            #     else:
+            #         message_printer.system_message("\n Provided file doesn't exist.")
+            #         continue
+            
+            # elif user_input == "/close":
+            #     data_viz_server.stop()
             else:
                 query_responder.execute_query(user_input)
 
         except KeyboardInterrupt:
             # try:
             if interrupted_once:
-                data_viz_server.stop()
+                # data_viz_server.stop()
                 message_printer.system_message("\n Exiting shell. Goodbye!")
                 break
             else:
                 interrupted_once = True
                 message_printer.system_message("\n ^C again to exit")
                 continue
-                 
         except Exception as e:
             log.error(f"Error : {e}")
 
