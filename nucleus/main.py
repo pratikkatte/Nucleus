@@ -107,6 +107,7 @@ def main():
     """
     """
 
+    interrupted_once = False
     input_vals = {}
 
     input_args = args_parser()
@@ -136,6 +137,9 @@ def main():
             # Prompt for user input
 
             user_input = session.prompt("\n> ", placeholder=PLACEHOLDER)
+
+            if user_input:
+                interrupted_once = False
 
             # Check if the user wants to exit
             if user_input.lower() == "":
@@ -178,29 +182,37 @@ def main():
 
             elif user_input == "/close":
                 data_viz_server.stop()
-
             else:
                 query_responder.execute_query(user_input)
 
         except KeyboardInterrupt:
-            try:
-                # Wait for the second `KeyboardInterrupt` or an Enter key
-                temp_placeholder_string = [('yellow', 'Press ^C again to confirm exit, or type your question to continue.')]
-                user_input = session.prompt("\n> ", placeholder=temp_placeholder_string)
-                
-                if user_input.lower() == "":
-                    continue
-                else:
-                    query_responder.execute_query(user_input)
-            except KeyboardInterrupt:
-                # Second `KeyboardInterrupt` exits the program
+            # try:
+            if interrupted_once:
                 data_viz_server.stop()
                 message_printer.system_message("\n Exiting shell. Goodbye!")
                 break
+            else:
+                interrupted_once = True
+                message_printer.system_message("\n ^C again to exit")
+                continue
+
+            #     # Wait for the second `KeyboardInterrupt` or an Enter key
+            #     temp_placeholder_string = [('yellow', 'Press ^C again to confirm exit, or type your question to continue.')]
+            #     user_input = session.prompt("\n> ", placeholder=temp_placeholder_string)
+                
+            #     if user_input.lower() == "":
+            #         continue
+            #     else:
+            #         query_responder.execute_query(user_input)
+            # except KeyboardInterrupt:
+            #     # Second `KeyboardInterrupt` exits the program
+            #     data_viz_server.stop()
+            #     message_printer.system_message("\n Exiting shell. Goodbye!")
+            #     break
                  
         except Exception as e:
-
             log.error(f"Error : {e}")
+
 
 if __name__ == "__main__":
     main()
